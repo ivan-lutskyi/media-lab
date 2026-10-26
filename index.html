@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Media Lab</title>
+<meta name="description" content="Браузерні інструменти для обкладинок, вертикальних відео та GIF. Усе рахується на твоєму пристрої — файли нікуди не завантажуються.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%231c1917'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23f0a02c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" crossorigin>
+<link rel="stylesheet" href="shared/rack.css">
+<style>
+  .tools{display:grid;gap:18px}
+  a.tool{display:block;text-decoration:none;color:inherit;margin:0;transition:border-color .2s}
+  a.tool:hover,a.tool:focus-visible{border-color:rgba(240,160,44,.55);outline:none}
+  a.tool h2{
+    font:600 22px/1 "Barlow Condensed",sans-serif;letter-spacing:.18em;text-transform:uppercase;
+    color:#efe6d9;margin:0 0 8px;display:flex;align-items:center;gap:10px;
+  }
+  a.tool h2::after{content:"→";margin-left:auto;color:var(--etch);transition:color .2s,transform .2s}
+  a.tool:hover h2::after{color:var(--signal);transform:translateX(3px)}
+  a.tool p{margin:0;font-size:13px;color:var(--silk)}
+  a.tool .tag{display:block;font-size:11px;color:#6b635b;margin-top:10px;letter-spacing:.04em}
+  .foot{font-size:11.5px;color:#6b635b;margin:26px 4px 0;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="rack">
+
+  <div class="unit">
+    <h1>Media Lab</h1>
+    <p class="sub">обкладинки · вертикальні відео · GIF — усе рахується у твоєму браузері, файли нікуди не йдуть</p>
+  </div>
+
+  <div class="tools">
+    <a class="unit tool" href="destructor/">
+      <h2>Деструктор</h2>
+      <p>Фото → абстрактне викривлене полотно: піксель-сорт, зсуви, дизеринг, дуотон, JPEG-руйнування, типографіка. Пресет як правило — один стиль на всі релізи.</p>
+      <span class="tag">обкладинки · банери · сторіс · афіші — Canvas 2D</span>
+    </a>
+    <a class="unit tool" href="vertical/">
+      <h2>Vertical Lab</h2>
+      <p>Будь-яке відео → 1080×1920 під Reels і TikTok: розмите тло замість смуг, H.264 з запасом під реенкод платформи, −14 LUFS у два проходи.</p>
+      <span class="tag">до 5 хвилин · ffmpeg.wasm</span>
+    </a>
+    <a class="unit tool" href="gif/">
+      <h2>GIF Lab</h2>
+      <p>Відео → легкий GIF з власною палітрою й дизерингом. Не влізло в ліміт — ширина зменшиться і спроба повториться сама.</p>
+      <span class="tag">1 / 2 / 5 МБ · ffmpeg.wasm</span>
+    </a>
+  </div>
+
+  <p class="foot">
+    Перший запуск відеоінструментів завантажує ядро ffmpeg (~32 МБ), далі воно береться з кешу браузера.
+    Найшвидше — у Chrome, Edge чи Firefox на комп'ютері: там ffmpeg працює в кілька потоків.
+  </p>
+
+</div>
+</body>
+</html>

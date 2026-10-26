@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vertical Lab</title>
+<meta name="description" content="Підготовка відео під Reels / TikTok: 1080×1920, H.264, −14 LUFS. Обробка в браузері, файл не залишає пристрій.">
+<script src="../coi-serviceworker.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" crossorigin>
+<link rel="stylesheet" href="../shared/rack.css">
+</head>
+<body>
+<div class="rack">
+
+  <nav class="nav">
+    <a class="home" href="../">Media Lab</a>
+    <a href="../destructor/">Деструктор</a>
+    <a href="./" aria-current="page">Vertical Lab</a>
+    <a href="../gif/">GIF</a>
+  </nav>
+
+  <div class="unit">
+    <h1>Vertical Lab</h1>
+    <p class="sub">1080×1920 · H.264 High · BT.709 · AAC 320k · −14 LUFS — обробка в браузері, файл не залишає пристрій</p>
+    <div class="chain">
+      <div class="node" id="n-load"><i class="led"></i>завантаження</div>
+      <div class="node" id="n-analyze"><i class="led"></i>гучність</div>
+      <div class="node" id="n-encode"><i class="led"></i>кодування</div>
+      <div class="node" id="n-done"><i class="led"></i>готово</div>
+    </div>
+  </div>
+
+  <div class="unit">
+    <span class="lbl">Джерело</span>
+    <div class="drop" id="drop" tabindex="0" role="button">
+      <b id="drop-title">Перетягни відео</b>
+      <span id="drop-sub">або натисни, щоб обрати · до 5 хвилин</span>
+    </div>
+    <input type="file" id="file" accept="video/*" class="hidden">
+    <p class="err hidden" id="err"></p>
+  </div>
+
+  <div class="unit">
+    <span class="lbl">Параметри</span>
+    <div class="grid">
+      <div>
+        <span class="lbl">Кадр</span>
+        <div class="seg" data-opt="fit">
+          <button data-v="blur" aria-pressed="true">розмиття</button>
+          <button data-v="crop" aria-pressed="false">обрізати</button>
+          <button data-v="black" aria-pressed="false">чорне</button>
+        </div>
+        <p class="hint" id="h-fit">Горизонтальний кадр лягає на розмите тло з себе самого.</p>
+      </div>
+      <div>
+        <span class="lbl">Частота</span>
+        <div class="seg" data-opt="fps">
+          <button data-v="source" aria-pressed="true">як є</button>
+          <button data-v="30" aria-pressed="false">30</button>
+          <button data-v="60" aria-pressed="false">60</button>
+        </div>
+        <p class="hint">60 — для швидкого руху та візуалів. 30 — для розмов.</p>
+      </div>
+      <div>
+        <span class="lbl">Якість</span>
+        <div class="seg" data-opt="quality">
+          <button data-v="max" aria-pressed="false">макс</button>
+          <button data-v="high" aria-pressed="true">висока</button>
+          <button data-v="light" aria-pressed="false">легка</button>
+        </div>
+        <p class="hint">Макс = CRF 16, повільніше, більший файл, більше запасу для реенкоду.</p>
+      </div>
+      <div>
+        <span class="lbl">Зерно</span>
+        <div class="seg" data-opt="grain">
+          <button data-v="0" aria-pressed="false">вимк</button>
+          <button data-v="2" aria-pressed="true">2</button>
+          <button data-v="5" aria-pressed="false">5</button>
+        </div>
+        <p class="hint">Ламає бандинг на градієнтах і димі після компресії платформи.</p>
+      </div>
+      <div>
+        <span class="lbl">Гучність</span>
+        <div class="seg" data-opt="loudness">
+          <button data-v="on" aria-pressed="true">−14 LUFS</button>
+          <button data-v="off" aria-pressed="false">не чіпати</button>
+        </div>
+        <p class="hint">Два проходи loudnorm. Платформа й так нормалізує — краще зробити це чисто.</p>
+      </div>
+    </div>
+    <button class="go" id="go" disabled>Запустити</button>
+    <p class="engine" id="engine"></p>
+  </div>
+
+  <div class="unit hidden" id="progress-unit">
+    <span class="lbl">Процес</span>
+    <div class="meter"><i id="bar"></i></div>
+    <div class="read">
+      <span><b id="p-pct">0%</b></span>
+      <span>швидкість <b id="p-speed">—</b></span>
+      <span>бітрейт <b id="p-br">—</b></span>
+      <span>fps <b id="p-fps">—</b></span>
+      <button class="stop" id="stop">Стоп</button>
+    </div>
+    <pre class="log" id="log"></pre>
+    <a class="dl hidden" id="dl">Забрати файл</a>
+  </div>
+
+  <div class="unit">
+    <span class="lbl">Що саме робиться</span>
+    <ul class="specs">
+      <li><b>1080×1920, SAR 1:1</b> — рівно 9:16, без ресемплінгу на боці платформи</li>
+      <li><b>H.264 High 4.2, CRF 16–20, cap 12–20 Mbps</b> — вантажимо жирніше, ніж віддає платформа</li>
+      <li><b>Закритий GOP 2 с, aq-mode 3</b> — так пакувальники Meta й TikTok ріжуть з меншими втратами</li>
+      <li><b>Явні теги BT.709</b> — інакше iOS вгадує колірний простір і кадр блякне</li>
+      <li><b>Lanczos + yuv420p</b> — різкіший даунскейл, сумісна субдискретизація</li>
+      <li><b>AAC-LC 320k / 48 kHz стерео, −14 LUFS, TP −1 dB</b> — лімітер платформи не б'є по мастеру</li>
+      <li><b>faststart, метадані зачищено</b> — швидке прев'ю в аплоадері, без геоданих</li>
+      <li><b>x264 preset medium / fast / veryfast</b> — у браузері ffmpeg у кілька разів повільніший за нативний, тому пресети на ступінь швидші, ніж у десктопній версії</li>
+    </ul>
+  </div>
+
+</div>
+<script type="module" src="vertical.js"></script>
+</body>
+</html>

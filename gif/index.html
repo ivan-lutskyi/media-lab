@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GIF Lab</title>
+<meta name="description" content="Легкі GIF з відео: власна палітра, дизеринг, автопідгонка під ліміт розміру. Обробка в браузері.">
+<script src="../coi-serviceworker.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" crossorigin>
+<link rel="stylesheet" href="../shared/rack.css">
+<style>
+  .preview{margin-top:16px;text-align:center;background:rgba(0,0,0,.3);border-radius:2px;padding:12px}
+  .preview img{max-width:100%;height:auto;image-rendering:auto;display:inline-block}
+</style>
+</head>
+<body>
+<div class="rack">
+
+  <nav class="nav">
+    <a class="home" href="../">Media Lab</a>
+    <a href="../destructor/">Деструктор</a>
+    <a href="../vertical/">Vertical Lab</a>
+    <a href="./" aria-current="page">GIF</a>
+  </nav>
+
+  <div class="unit">
+    <h1>GIF Lab</h1>
+    <p class="sub">відео → легкий GIF · власна палітра · дизеринг · підгонка під ліміт — обробка в браузері</p>
+  </div>
+
+  <div class="unit">
+    <span class="lbl">Джерело</span>
+    <div class="drop" id="drop" tabindex="0" role="button">
+      <b id="drop-title">Перетягни відео</b>
+      <span id="drop-sub">або натисни, щоб обрати</span>
+    </div>
+    <input type="file" id="file" accept="video/*" class="hidden">
+    <p class="err hidden" id="err"></p>
+  </div>
+
+  <div class="unit">
+    <span class="lbl">Параметри</span>
+    <div class="grid">
+      <div>
+        <span class="lbl">Ширина, px</span>
+        <div class="seg" data-opt="width">
+          <button data-v="240" aria-pressed="false">240</button>
+          <button data-v="280" aria-pressed="true">280</button>
+          <button data-v="360" aria-pressed="false">360</button>
+          <button data-v="480" aria-pressed="false">480</button>
+        </div>
+        <p class="hint">Стартова ширина. Якщо не влізе в ліміт — зменшиться сама.</p>
+      </div>
+      <div>
+        <span class="lbl">Кадри/с</span>
+        <div class="seg" data-opt="fps">
+          <button data-v="8" aria-pressed="true">8</button>
+          <button data-v="12" aria-pressed="false">12</button>
+          <button data-v="15" aria-pressed="false">15</button>
+        </div>
+        <p class="hint">8 — смикано, але легко. 15 — плавно, вдвічі важче.</p>
+      </div>
+      <div>
+        <span class="lbl">Кольори</span>
+        <div class="seg" data-opt="colors">
+          <button data-v="32" aria-pressed="false">32</button>
+          <button data-v="64" aria-pressed="true">64</button>
+          <button data-v="128" aria-pressed="false">128</button>
+          <button data-v="256" aria-pressed="false">256</button>
+        </div>
+        <p class="hint">Палітра будується з самого кліпу, а не стандартна.</p>
+      </div>
+      <div>
+        <span class="lbl">Дизеринг</span>
+        <div class="seg" data-opt="dither">
+          <button data-v="bayer" aria-pressed="true">байєр</button>
+          <button data-v="floyd" aria-pressed="false">флойд</button>
+          <button data-v="none" aria-pressed="false">вимк</button>
+        </div>
+        <p class="hint" id="h-dither">Регулярна сітка — стискається найкраще.</p>
+      </div>
+      <div>
+        <span class="lbl">Ліміт розміру</span>
+        <div class="seg" data-opt="limit">
+          <button data-v="1" aria-pressed="true">1 МБ</button>
+          <button data-v="2" aria-pressed="false">2 МБ</button>
+          <button data-v="5" aria-pressed="false">5 МБ</button>
+          <button data-v="0" aria-pressed="false">без</button>
+        </div>
+        <p class="hint">Стільки дозволяють месенджери та форуми без перекодування.</p>
+      </div>
+      <div>
+        <span class="lbl">Фрагмент, с</span>
+        <div class="pair">
+          <input class="num" id="start" type="number" min="0" step="0.1" placeholder="з 0" aria-label="Початок, секунд">
+          <input class="num" id="length" type="number" min="0.1" step="0.1" placeholder="до кінця" aria-label="Тривалість, секунд">
+        </div>
+        <p class="hint">Початок і тривалість. Порожньо — весь кліп.</p>
+      </div>
+    </div>
+    <button class="go" id="go" disabled>Зробити GIF</button>
+    <p class="engine" id="engine"></p>
+  </div>
+
+  <div class="unit hidden" id="progress-unit">
+    <span class="lbl">Процес</span>
+    <div class="meter"><i id="bar"></i></div>
+    <div class="read">
+      <span><b id="p-pct">0%</b></span>
+      <span>спроба <b id="p-try">—</b></span>
+      <span>ширина <b id="p-w">—</b></span>
+      <span>вага <b id="p-size">—</b></span>
+      <button class="stop" id="stop">Стоп</button>
+    </div>
+    <pre class="log" id="log"></pre>
+    <div class="preview hidden" id="preview"><img id="out" alt="Результат"></div>
+    <a class="dl hidden" id="dl">Забрати GIF</a>
+  </div>
+
+</div>
+<script type="module" src="gif.js"></script>
+</body>
+</html>
