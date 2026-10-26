@@ -37,6 +37,8 @@ npm run serve         # http://localhost:4848, з COOP/COEP
 node scripts/serve.mjs --no-coi   # як на GitHub Pages: ізоляцію дає service worker
 npm test              # smoke-тест у Chrome (потрібні ffmpeg/ffprobe у PATH і мережа)
 node test/smoke.mjs --no-coi
+node test/smoke.mjs --st                                   # однопотоковий фолбек (як Safari)
+SMOKE_URL=https://ivan-lutskyi.github.io/media-lab npm test  # проти задеплоєного сайту
 ```
 
 Тест генерує кліп 1920×1080 з тоном, проганяє обидва відеоінструменти до скачування результату і
@@ -44,4 +46,5 @@ node test/smoke.mjs --no-coi
 
 ## Деплой
 
-GitHub Pages з гілки `main`, корінь репозиторію. Файл `.nojekyll` вимикає обробку Jekyll.
+GitHub Pages з гілки `main`, корінь репозиторію: https://ivan-lutskyi.github.io/media-lab/
+Кожен пуш у `main` перевикладає сайт. Файл `.nojekyll` вимикає обробку Jekyll.

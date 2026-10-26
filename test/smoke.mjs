@@ -2,6 +2,7 @@
 // Потрібні: Chrome, ffmpeg/ffprobe у PATH (для тестового кліпу й перевірки виходу), мережа (ядро з jsDelivr).
 //   node test/smoke.mjs            — сервер віддає COOP/COEP
 //   node test/smoke.mjs --no-coi   — як GitHub Pages: ізоляцію має дати service worker
+//   SMOKE_URL=https://…/media-lab node test/smoke.mjs — проти задеплоєного сайту (режим service worker)
 //   node test/smoke.mjs --st       — без заголовків і без service worker: однопотоковий фолбек (як Safari)
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -11,9 +12,10 @@ import { chromium } from 'playwright-core';
 
 const root = path.resolve(import.meta.dirname, '..');
 const st = process.argv.includes('--st');
-const noCoi = st || process.argv.includes('--no-coi');
+const REMOTE = process.env.SMOKE_URL?.replace(/\/$/, '');
+const noCoi = st || Boolean(REMOTE) || process.argv.includes('--no-coi');
 const PORT = 4849 + (st ? 2 : noCoi ? 1 : 0);
-const BASE = `http://localhost:${PORT}`;
+const BASE = REMOTE || `http://localhost:${PORT}`;
 const CHROME = process.env.CHROME_PATH || [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -39,11 +41,11 @@ function check(name, ok, detail = '') {
   if (!ok) failures++;
 }
 
-const server = spawn(process.execPath, [path.join(root, 'scripts/serve.mjs'), ...(noCoi ? ['--no-coi'] : [])], {
+const server = REMOTE ? null : spawn(process.execPath, [path.join(root, 'scripts/serve.mjs'), ...(noCoi ? ['--no-coi'] : [])], {
   env: { ...process.env, PORT: String(PORT) },
   stdio: ['ignore', 'pipe', 'inherit'],
 });
-await new Promise((resolve) => server.stdout.once('data', resolve));
+if (server) await new Promise((resolve) => server.stdout.once('data', resolve));
 
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
 const context = await browser.newContext({ acceptDownloads: true, serviceWorkers: st ? 'block' : 'allow' });
@@ -150,7 +152,7 @@ try {
   check('без помилок JS', real.length === 0, real.join(' | '));
 } finally {
   await browser.close();
-  server.kill();
+  server?.kill();
   fs.rmSync(work, { recursive: true, force: true });
 }
 
