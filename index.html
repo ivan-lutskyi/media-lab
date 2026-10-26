@@ -5,57 +5,141 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Media Lab</title>
 <meta name="description" content="Браузерні інструменти для обкладинок, вертикальних відео та GIF. Усе рахується на твоєму пристрої — файли нікуди не завантажуються.">
+<meta property="og:title" content="Media Lab">
+<meta property="og:description" content="Обкладинки, вертикальні відео та GIF просто в браузері. Файли не залишають пристрій.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%231c1917'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23f0a02c'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" crossorigin>
 <link rel="stylesheet" href="shared/rack.css">
 <style>
-  .tools{display:grid;gap:18px}
-  a.tool{display:block;text-decoration:none;color:inherit;margin:0;transition:border-color .2s}
-  a.tool:hover,a.tool:focus-visible{border-color:rgba(240,160,44,.55);outline:none}
-  a.tool h2{
-    font:600 22px/1 "Barlow Condensed",sans-serif;letter-spacing:.18em;text-transform:uppercase;
-    color:#efe6d9;margin:0 0 8px;display:flex;align-items:center;gap:10px;
+  .rack{max-width:1120px}
+
+  /* ── hero ── */
+  .hero{padding:34px 30px 30px;overflow:hidden}
+  .hero-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:26px}
+  .hero-top .led{background:var(--signal);box-shadow:0 0 9px var(--signal);animation:pulse 2.4s ease-in-out infinite}
+  .hero-top .model{font:500 11px/1 "Barlow Condensed",sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--etch)}
+  .hero-top a{margin-left:auto;font:500 11px/1 "Barlow Condensed",sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--etch);text-decoration:none;border-bottom:1px solid var(--rule);padding-bottom:3px}
+  .hero-top a:hover{color:var(--signal);border-color:var(--signal)}
+  .hero h1{font:700 clamp(52px,11vw,124px)/.86 "Barlow Condensed",sans-serif;letter-spacing:.06em;margin:0}
+  .hero h1 span{color:var(--signal);text-shadow:0 0 28px rgba(240,160,44,.35)}
+  .hero .lead{font-size:clamp(14px,1.6vw,16px);color:var(--silk);max-width:58ch;margin:20px 0 0;line-height:1.65}
+  .scope{display:block;width:100%;height:70px;margin:26px 0 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:rgba(0,0,0,.18)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:18px;font-size:12px;color:var(--etch)}
+  .chips span{display:flex;align-items:center;gap:8px}
+  .chips .led{background:var(--ok);box-shadow:0 0 6px rgba(155,184,122,.6)}
+
+  /* ── tools ── */
+  .tools{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  a.tool{display:flex;flex-direction:column;text-decoration:none;color:inherit;margin:0;padding:18px 18px 20px;transition:border-color .2s,transform .2s}
+  a.tool:hover,a.tool:focus-visible{border-color:rgba(240,160,44,.55);outline:none;transform:translateY(-2px)}
+  .screen{
+    position:relative;aspect-ratio:16/10;margin:10px 0 18px;border-radius:3px;overflow:hidden;
+    background:#0d0b0a;border:1px solid #0a0908;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),inset 0 0 26px rgba(0,0,0,.85);
   }
-  a.tool h2::after{content:"→";margin-left:auto;color:var(--etch);transition:color .2s,transform .2s}
-  a.tool:hover h2::after{color:var(--signal);transform:translateX(3px)}
-  a.tool p{margin:0;font-size:13px;color:var(--silk)}
-  a.tool .tag{display:block;font-size:11px;color:#6b635b;margin-top:10px;letter-spacing:.04em}
-  .foot{font-size:11.5px;color:#6b635b;margin:26px 4px 0;line-height:1.8}
+  .screen canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .screen canvas.px{image-rendering:pixelated;image-rendering:crisp-edges}
+  .screen::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);
+  }
+  .screen .hud{
+    position:absolute;left:8px;bottom:8px;z-index:1;font:500 10px/1 "IBM Plex Mono",monospace;
+    color:var(--signal);background:rgba(13,11,10,.82);padding:4px 6px;border-radius:2px;letter-spacing:.04em;
+  }
+  .tool-head{display:flex;align-items:baseline;gap:10px}
+  .tool-head .no{font:600 12px/1 "Barlow Condensed",sans-serif;letter-spacing:.2em;color:var(--signal)}
+  a.tool h2{font:600 25px/1 "Barlow Condensed",sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#efe6d9;margin:0}
+  a.tool p{margin:10px 0 0;font-size:13px;color:var(--silk);line-height:1.6}
+  a.tool .tag{display:block;font-size:11px;color:#6b635b;margin-top:12px;letter-spacing:.04em}
+  .open{
+    margin-top:auto;padding-top:18px;display:flex;align-items:center;gap:8px;
+    font:600 13px/1 "Barlow Condensed",sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--etch);transition:color .2s;
+  }
+  .open::after{content:"→";transition:transform .2s}
+  a.tool:hover .open{color:var(--signal)}
+  a.tool:hover .open::after{transform:translateX(4px)}
+
+  /* ── flow ── */
+  .flow{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:18px}
+  .step{border-left:2px solid rgba(240,160,44,.35);padding:2px 0 2px 14px}
+  .step b{display:block;font:600 14px/1.2 "Barlow Condensed",sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#e8dfd2}
+  .step span{display:block;font-size:12px;color:var(--etch);margin-top:6px;line-height:1.6}
+  .foot{font-size:11.5px;color:#6b635b;margin:24px 4px 0;line-height:1.8;display:flex;flex-wrap:wrap;gap:6px 24px;justify-content:space-between}
+  .foot a{color:var(--etch)}
+  .foot a:hover{color:var(--signal)}
+
+  @keyframes pulse{50%{opacity:.45}}
+  @media (max-width:520px){
+    .hero{padding:26px 18px 22px}
+    .hero-top a{margin-left:0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .hero-top .led{animation:none}
+    a.tool:hover{transform:none}
+  }
 </style>
 </head>
 <body>
 <div class="rack">
 
-  <div class="unit">
-    <h1>Media Lab</h1>
-    <p class="sub">обкладинки · вертикальні відео · GIF — усе рахується у твоєму браузері, файли нікуди не йдуть</p>
-  </div>
+  <header class="unit hero">
+    <div class="hero-top">
+      <i class="led"></i>
+      <span class="model">Release tools · 3 модулі</span>
+      <a href="https://github.com/ivan-lutskyi/media-lab">Код на GitHub</a>
+    </div>
+    <h1>Media<span>·</span>Lab</h1>
+    <p class="lead">Три інструменти для релізу: обкладинка з власного фото, вертикальне відео під Reels і TikTok, легкий GIF. Перетягни файл, налаштуй, забери результат.</p>
+    <canvas class="scope" id="scope" aria-hidden="true"></canvas>
+    <div class="chips">
+      <span><i class="led"></i>файли не залишають пристрій</span>
+      <span><i class="led"></i>без сервера й реєстрації</span>
+      <span><i class="led"></i>Canvas і ffmpeg просто в браузері</span>
+    </div>
+  </header>
 
-  <div class="tools">
+  <main class="tools">
     <a class="unit tool" href="destructor/">
-      <h2>Деструктор</h2>
-      <p>Фото → абстрактне викривлене полотно: піксель-сорт, зсуви, дизеринг, дуотон, JPEG-руйнування, типографіка. Пресет як правило — один стиль на всі релізи.</p>
-      <span class="tag">обкладинки · банери · сторіс · афіші — Canvas 2D</span>
+      <div class="tool-head"><span class="no">01</span><h2>Деструктор</h2></div>
+      <div class="screen"><canvas class="px" id="pv-destructor" width="160" height="100" aria-hidden="true"></canvas><span class="hud">sort · shift · dither · seed 1312</span></div>
+      <p>Фото → абстрактне викривлене полотно: піксель-сорт, зсуви смуг, дизеринг, дуотон, JPEG-руйнування, типографіка. Пресет як правило — один почерк на всю серію.</p>
+      <span class="tag">обкладинки · банери · сторіс · афіші</span>
+      <span class="open">Відкрити</span>
     </a>
     <a class="unit tool" href="vertical/">
-      <h2>Vertical Lab</h2>
-      <p>Будь-яке відео → 1080×1920 під Reels і TikTok: розмите тло замість смуг, H.264 з запасом під реенкод платформи, −14 LUFS у два проходи.</p>
-      <span class="tag">до 5 хвилин · ffmpeg.wasm</span>
+      <div class="tool-head"><span class="no">02</span><h2>Vertical Lab</h2></div>
+      <div class="screen"><canvas id="pv-vertical" aria-hidden="true"></canvas><span class="hud" id="hud-vertical">16:9 → 9:16 · −14 LUFS</span></div>
+      <p>Будь-яке відео → 1080×1920 під Reels і TikTok: розмите тло замість чорних смуг, H.264 із запасом під реенкод платформи, гучність у два проходи.</p>
+      <span class="tag">до 5 хвилин · H.264 High · AAC 320k</span>
+      <span class="open">Відкрити</span>
     </a>
     <a class="unit tool" href="gif/">
-      <h2>GIF Lab</h2>
-      <p>Відео → легкий GIF з власною палітрою й дизерингом. Не влізло в ліміт — ширина зменшиться і спроба повториться сама.</p>
-      <span class="tag">1 / 2 / 5 МБ · ffmpeg.wasm</span>
+      <div class="tool-head"><span class="no">03</span><h2>GIF Lab</h2></div>
+      <div class="screen"><canvas class="px" id="pv-gif" width="96" height="60" aria-hidden="true"></canvas><span class="hud" id="hud-gif">кадр 01/12 · 6 кольорів · 0.74 МБ</span></div>
+      <p>Відео → легкий GIF з палітрою, зібраною з самого кліпу. Не влізло в ліміт — ширина зменшиться, і спроба повториться сама.</p>
+      <span class="tag">ліміт 1 / 2 / 5 МБ · байєр · флойд</span>
+      <span class="open">Відкрити</span>
     </a>
-  </div>
+  </main>
 
-  <p class="foot">
-    Перший запуск відеоінструментів завантажує ядро ffmpeg (~32 МБ), далі воно береться з кешу браузера.
-    Найшвидше — у Chrome, Edge чи Firefox на комп'ютері: там ffmpeg працює в кілька потоків.
-  </p>
+  <section class="unit" aria-label="Як це працює">
+    <span class="lbl">Як це працює</span>
+    <div class="flow">
+      <div class="step"><b>01 · Перетягни</b><span>Фото чи відео відкривається прямо у вкладці — нічого не вивантажується.</span></div>
+      <div class="step"><b>02 · Налаштуй</b><span>Пресети, формати й ліміти. Обробка йде на твоєму процесорі.</span></div>
+      <div class="step"><b>03 · Забери</b><span>Готовий файл зберігається одним кліком. Закрив вкладку — нічого не лишилось.</span></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Перший запуск відеоінструментів завантажує ядро ffmpeg (~32 МБ), далі воно береться з кешу.<br>Найшвидше — у Chrome, Edge чи Firefox на комп'ютері: там ffmpeg працює в кілька потоків.</span>
+    <a href="https://github.com/ivan-lutskyi/media-lab">github.com/ivan-lutskyi/media-lab</a>
+  </footer>
 
 </div>
+<script type="module" src="hub.js"></script>
 </body>
 </html>

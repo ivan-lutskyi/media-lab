@@ -1,249 +1,245 @@
-# ДЕСТРУКТОР — опис проєкту
+# Destructor
 
-Локальний браузерний інструмент для перетворення звичайних фотографій на абстрактні викривлені полотна: обкладинки релізів, банери, сторіс, афіші.
+A browser tool that turns ordinary photos into abstract, distorted canvases: release covers, banners, stories, posters.
 
-**Файл:** `destruktor.html` — один самодостатній HTML, без збірки, без залежностей, без бекенду.
-**Статус:** робоча версія 2 (додано довільні пропорції).
-
----
-
-## 1. Навіщо це існує
-
-Контекст: техно-проєкт, потік ескізів на SoundCloud, регулярні релізи. Потрібна візуальна ідентичність, яка:
-
-- **не генерується ШІ** — деструкція має бути справжньою, застосованою до власного фото, а не намальованою імітацією глітчу;
-- **повторювана** — п'ятнадцять обкладинок, зроблених одним методом, читаються як почерк; п'ятнадцять різних читаються як папка;
-- **швидка** — обкладинка не має ставати окремим проєктом і гальмувати реліз.
-
-Звідси головна ідея інструмента: **пресет як правило**. Ти один раз знаходиш свій набір цифр, зберігаєш рядок, і далі кожна обкладинка — це «вставити фото → вставити правило → зберегти». Фіксований пресет і є стилем.
-
-Матеріал для обробки — власні зйомки: бетон, іржа, дроти, сітка, нічні відблиски, розмиті неонові плями. Знімається телефоном або Osmo за 20 хвилин прогулянки.
+**File:** `index.html` — a single self-contained HTML file. No build, no dependencies, no backend.
+**Status:** working version 2 (arbitrary aspect ratios added).
 
 ---
 
-## 2. Технічна основа
+## 1. Why it exists
 
-- Чистий HTML + CSS + ванільний JS, без фреймворків і без бандлера.
-- Уся обробка — Canvas 2D API, `getImageData` / `putImageData`, ручні цикли по пікселях.
-- Файли **нікуди не завантажуються**: `createImageBitmap` з локального `File`, все живе в пам'яті вкладки.
-- Мережа потрібна лише для шрифтів Google Fonts (Archivo, Space Mono). Без інтернету є фолбеки — Arial Narrow і системний моноширинний.
-- Працює офлайн з `file://`, відкривається подвійним кліком.
+Context: a techno project with a steady stream of sketches on SoundCloud and regular releases. It needs a visual identity that is:
+
+- **not AI-generated** — the destruction has to be real, applied to your own photo, not a painted imitation of a glitch;
+- **repeatable** — fifteen covers made with one method read as a signature; fifteen different ones read as a folder;
+- **fast** — a cover must not become a project of its own and hold up a release.
+
+Hence the core idea of the tool: **a preset is a rule**. You find your set of numbers once, save the string, and from then on every cover is "drop the photo → paste the rule → save". The fixed preset *is* the style.
+
+Source material is your own footage: concrete, rust, wires, mesh, night reflections, blurred neon. Shot on a phone or an Osmo during a 20-minute walk.
 
 ---
 
-## 3. Конвеєр обробки
+## 2. Technical basis
 
-Порядок кроків фіксований і принциповий. Логіка: **спочатку зруйнувати, потім нав'язати нову структуру, і тільки в кінці покласти текст.** Розмиття саме по собі читається як помилка; розмиття + дизеринг + зерно + типографіка читаються як задум.
+- Plain HTML + CSS + vanilla JS. No frameworks, no bundler.
+- All processing uses the Canvas 2D API: `getImageData` / `putImageData` and hand-written pixel loops.
+- Files are **never uploaded**: `createImageBitmap` from a local `File`, everything lives in the tab's memory.
+- The network is only needed for Google Fonts (Archivo, Space Mono). Offline, it falls back to Arial Narrow and the system monospace font.
+- Works offline from `file://` and opens with a double click.
+
+---
+
+## 3. Processing pipeline
+
+The order of steps is fixed and deliberate. The logic: **destroy first, then impose a new structure, and only at the end lay down the text.** Blur on its own reads as a mistake; blur + dithering + grain + typography reads as intent.
 
 ```
-drawBase      кроп у потрібні пропорції + яскравість/контраст/насиченість/розмиття
+drawBase      crop to the aspect ratio + brightness/contrast/saturation/blur
    ↓
-pixelate      зменшення до сітки і назад через nearest neighbour
+pixelate      downscale to a grid and back up with nearest neighbour
    ↓
-sliceShift    випадкові смуги зсуваються вбік із загортанням краю
+sliceShift    random bands shift sideways with edge wrap-around
    ↓
-pixelSort     сортування пікселів у рядках/колонках за порогом яскравості
+pixelSort     sort pixels in rows/columns within a brightness threshold
    ↓
-rgbShift      розведення червоного і синього каналів під заданим кутом
+rgbShift      split the red and blue channels at a given angle
    ↓
-dither        Флойд–Стейнберг / Аткінсон / Байєр 8×8 / жорсткий поріг
+dither        Floyd–Steinberg / Atkinson / Bayer 8×8 / hard threshold
    ↓
-duotone       мапування яскравості на градієнт із двох кольорів
+duotone       map luminance onto a two-colour gradient
    ↓
-wear          інверсія + зерно
+wear          inversion + grain
    ↓
-jpegLoss      N циклів перезбереження в JPEG низької якості
+jpegLoss      N cycles of re-saving as low-quality JPEG
    ↓
-typography    два рядки з ручним трекінгом по символах
+typography    two lines with manual per-character tracking
 ```
 
-**Чому дизеринг після сортування:** сортування працює по яскравості, тому потребує повного тонального діапазону. Після дизерингу залишається 2–8 рівнів, і сортувати вже нічого.
+**Why dithering comes after sorting:** sorting works on brightness, so it needs the full tonal range. After dithering only 2–8 levels remain, and there is nothing left to sort.
 
-**Чому JPEG-цикли передостанні:** артефакти стискання мають накладатися на вже готову структуру, а не на вихідне фото — інакше вони просто зникають на наступних кроках.
+**Why the JPEG cycles come second to last:** compression artefacts should land on the finished structure, not on the source photo; otherwise the later steps simply wipe them out.
 
-**Чому типографіка остання:** текст має лишатися чистим і читабельним поверх зруйнованого зображення. Це той контраст, який відрізняє обкладинку від просто зіпсованого фото.
-
----
-
-## 4. Масштабування і детермінованість
-
-Дві речі, які роблять інструмент придатним для реальної роботи, а не тільки для гри.
-
-**Опорний розмір `REF = 1000`.** Усі параметри в пікселях (розмиття, товщина смуг, довжина сортування, кегль) задані відносно умовного полотна 1000 px. Реальний коефіцієнт — `s = √(w × h) / 1000`, тобто прив'язаний до площі, а не до сторони. Завдяки цьому один пресет виглядає однаково на квадраті 1:1 і на банері 16:9, і не доводиться перебудовувати налаштування під кожен формат.
-
-**Сід і детермінований шум.** Замість `Math.random()` використовується PRNG `mulberry32`, ініціалізований числом `seed`. Зерно і зсув смуг беруть числа з одного потоку в фіксованому порядку. Наслідок: **прев'ю 760 px точно збігається з експортом 3000 px**, а зміна сіда дає інший варіант того самого правила.
+**Why typography comes last:** the text must stay clean and legible on top of the destroyed image. That contrast is what separates a cover from a merely broken photo.
 
 ---
 
-## 5. Параметри
+## 4. Scaling and determinism
 
-Усі параметри живуть в одному об'єкті `P` і серіалізуються в JSON — це і є «рядок правила».
+Two things make the tool fit for real work rather than just play.
 
-### Формат
-| Ключ | Діапазон | Опис |
+**Reference size `REF = 1000`.** Every pixel parameter (blur, band thickness, sort length, type size) is defined relative to a notional 1000 px canvas. The actual factor is `s = √(w × h) / 1000`, tied to area rather than to one side. As a result, one preset looks the same on a 1:1 square and a 16:9 banner, and you never rebuild settings per format.
+
+**Seed and deterministic noise.** Instead of `Math.random()`, the `mulberry32` PRNG is used, initialised with `seed`. Grain and band shifts draw numbers from one stream in a fixed order. Consequence: **the 760 px preview matches the 3000 px export exactly**, and changing the seed gives another variant of the same rule.
+
+---
+
+## 5. Parameters
+
+All parameters live in a single object `P` and serialise to JSON — that is the "rule string".
+
+### Format
+| Key | Range | Description |
 |---|---|---|
-| `rw`, `rh` | 1–100 | пропорції; пресети 1:1, 16:9, 9:16, 4:5, 3:2, 2:3, 21:9, 2:1 |
+| `rw`, `rh` | 1–100 | aspect ratio; presets 1:1, 16:9, 9:16, 4:5, 3:2, 2:3, 21:9, 2:1 |
 
-### Кадр
-| Ключ | Діапазон | Опис |
+### Frame
+| Key | Range | Description |
 |---|---|---|
-| `cropX` | 0–1 | зсув кадру по горизонталі |
-| `cropY` | 0–1 | зсув кадру по вертикалі |
-| `zoom` | 1–4 | наближення |
+| `cropX` | 0–1 | horizontal frame offset |
+| `cropY` | 0–1 | vertical frame offset |
+| `zoom` | 1–4 | zoom |
 
-### База
-| Ключ | Діапазон | Опис |
+### Base
+| Key | Range | Description |
 |---|---|---|
-| `bright` | 20–220 | яскравість, % |
-| `contrast` | 20–500 | контраст, % |
-| `sat` | 0–250 | насиченість, % (0 = ч/б) |
-| `blur` | 0–60 | розмиття |
-| `pixel` | 0–80 | розмір блоку пікселізації |
+| `bright` | 20–220 | brightness, % |
+| `contrast` | 20–500 | contrast, % |
+| `sat` | 0–250 | saturation, % (0 = black and white) |
+| `blur` | 0–60 | blur |
+| `pixel` | 0–80 | pixelation block size |
 
-### Зсув смуг
-| Ключ | Діапазон | Опис |
+### Slice shift
+| Key | Range | Description |
 |---|---|---|
-| `slAmt` | 0–300 | максимальний зсув |
-| `slCnt` | 1–120 | кількість смуг |
-| `slH` | 1–140 | товщина смуги |
-| `slVert` | bool | вертикальні замість горизонтальних |
+| `slAmt` | 0–300 | maximum shift |
+| `slCnt` | 1–120 | number of bands |
+| `slH` | 1–140 | band thickness |
+| `slVert` | bool | vertical instead of horizontal |
 
 ### Pixel sort
-| Ключ | Діапазон | Опис |
+| Key | Range | Description |
 |---|---|---|
-| `psOn` | bool | увімкнено |
-| `psDir` | `h` / `v` | рядки або колонки |
-| `psLo` | 0–1 | нижній поріг яскравості |
-| `psHi` | 0–1 | верхній поріг яскравості |
-| `psLen` | 8–1400 | максимальна довжина одного відрізка |
-| `psKey` | `lum` `sat` `hue` `r` `b` | за чим сортувати |
-| `psRev` | bool | зворотний порядок |
+| `psOn` | bool | enabled |
+| `psDir` | `h` / `v` | rows or columns |
+| `psLo` | 0–1 | lower brightness threshold |
+| `psHi` | 0–1 | upper brightness threshold |
+| `psLen` | 8–1400 | maximum length of one run |
+| `psKey` | `lum` `sat` `hue` `r` `b` | sort key |
+| `psRev` | bool | reverse order |
 
-### RGB-зсув
-| Ключ | Діапазон | Опис |
+### RGB shift
+| Key | Range | Description |
 |---|---|---|
-| `rgbAmt` | 0–120 | величина розведення каналів |
-| `rgbAng` | 0–360 | напрямок |
+| `rgbAmt` | 0–120 | channel separation |
+| `rgbAng` | 0–360 | direction |
 
-### Дизеринг
-| Ключ | Діапазон | Опис |
+### Dithering
+| Key | Range | Description |
 |---|---|---|
-| `dtMode` | `none` `fs` `atk` `bayer` `thr` | метод |
-| `dtLev` | 2–8 | кількість тонових рівнів |
-| `dtScale` | 1–10 | крупність зерна дизерингу |
-| `dtMono` | bool | монохром або по каналах |
+| `dtMode` | `none` `fs` `atk` `bayer` `thr` | method |
+| `dtLev` | 2–8 | number of tonal levels |
+| `dtScale` | 1–10 | dither grain size |
+| `dtMono` | bool | monochrome or per channel |
 
-### Дуотон, знос
-| Ключ | Діапазон | Опис |
+### Duotone, wear
+| Key | Range | Description |
 |---|---|---|
-| `duoOn` | bool | увімкнено |
-| `duoA`, `duoB` | hex | колір тіней і світла |
-| `inv` | bool | інверсія |
-| `grain` | 0–90 | зерно |
-| `jpgIt` | 0–30 | кількість циклів перезбереження |
-| `jpgQ` | 1–60 | якість JPEG у циклах, % |
+| `duoOn` | bool | enabled |
+| `duoA`, `duoB` | hex | shadow and highlight colour |
+| `inv` | bool | invert |
+| `grain` | 0–90 | grain |
+| `jpgIt` | 0–30 | number of re-save cycles |
+| `jpgQ` | 1–60 | JPEG quality in the cycles, % |
 
-### Типографіка, сід
-| Ключ | Діапазон | Опис |
+### Typography, seed
+| Key | Range | Description |
 |---|---|---|
-| `t1`, `t2` | текст | верхній (жирний) і нижній (світлий) рядок |
-| `txPos` | `tl` `tr` `bl` `br` | кут |
-| `txSize` | 8–120 | кегль |
-| `txTrack` | −0.05–0.6 | трекінг у частках кегля |
-| `txCol` | hex | колір |
-| `seed` | 1–9999 | сід шуму |
+| `t1`, `t2` | text | top (bold) and bottom (light) line |
+| `txPos` | `tl` `tr` `bl` `br` | corner |
+| `txSize` | 8–120 | type size |
+| `txTrack` | −0.05–0.6 | tracking as a fraction of type size |
+| `txCol` | hex | colour |
+| `seed` | 1–9999 | noise seed |
 
 ---
 
-## 6. Експорт
+## 6. Export
 
-- **Зберегти** — активне фото в поточних пропорціях. Довша сторона: 1000 / 1500 / 2000 / 3000 px. PNG або JPEG 92%.
-- **Пакетно** — усі завантажені фото одним пресетом. Це основний режим для серії.
-- **Зберегти комплект** — один кадр у чотирьох форматах підряд: 1:1 (реліз), 16:9 (банер, YouTube), 9:16 (сторіс, Reels), 4:5 (пост). Той самий сід і пресет, тому все читається як одна робота.
+- **Save** — the active photo in the current aspect ratio. Long side: 1000 / 1500 / 2000 / 3000 px. PNG or JPEG 92%.
+- **Batch** — every loaded photo with one preset. This is the main mode for a series.
+- **Save set** — one frame in four formats in a row: 1:1 (release), 16:9 (banner, YouTube), 9:16 (stories, Reels), 4:5 (post). Same seed and preset, so everything reads as one piece.
 
-Іменування: `{ім'я файлу}__{rw}x{rh}.{png|jpg}`.
-
----
-
-## 7. Дизайн інтерфейсу
-
-Напрямок — різографія і зіни, а не «студія обробки фото». Це той самий світ, з якого прийшла техно-графіка: дешевий друк, обмежена палітра, моноширинний текст.
-
-- Палітра: папір `#EDE9E0`, друга поверхня `#E2DDD2`, чорнило `#14110F`, приглушений текст `#6B655C`, акцент риso-рожевий `#FF3D6E`, службовий синій `#1B4FA0`.
-- Типографіка: **Archivo 900** для заголовків, **Space Mono** для всього інтерфейсу.
-- Нуль заокруглень, суцільні хвилясті лінії 1 px, повзунки з квадратними бігунками.
-- Фон із тонкої горизонтальної растрової сітки — імітація сканліній.
-- Полотно обрамлене кутовими мітками кадрування, як на контрольному відбитку.
-- Групи параметрів пронумеровані 01–11, бо це справді послідовність конвеєра, а не декоративна нумерація.
-- Ключовий елемент — **смуга правила** під полотном: живий JSON поточного пресету, який завжди на очах. Головна ідея проєкту зроблена видимою частиною інтерфейсу.
-
-Адаптив до мобільного, видимий фокус із клавіатури, `prefers-reduced-motion` враховано.
+Naming: `{file name}__{rw}x{rh}.{png|jpg}`.
 
 ---
 
-## 8. Відомі обмеження
+## 7. Interface design
 
-- Обробка синхронна в головному потоці. Pixel sort і дизеринг на 3000×3000 займають кілька секунд, інтерфейс на цей час підвисає.
-- JPEG-цикли на великому розмірі — найповільніша операція: кожен цикл це повне кодування і декодування.
-- Немає історії дій і скасування.
-- Пресети не зберігаються між сесіями — тільки ручне копіювання рядка.
-- Типографіка: рівно два рядки, один шрифт, чотири позиції.
-- Пакетний експорт і комплект форматів не комбінуються.
-- Це **не** справжній дата-бендинг: байти файлу не пошкоджуються, руйнування відбувається на рівні пікселів. Візуально близько, концептуально не те саме.
+The direction is risograph and zines, not a "photo studio". It is the same world techno graphics came from: cheap print, a limited palette, monospaced text.
 
----
+- Palette: paper `#EDE9E0`, second surface `#E2DDD2`, ink `#14110F`, muted text `#6B655C`, riso-pink accent `#FF3D6E`, utility blue `#1B4FA0`.
+- Typography: **Archivo 900** for headings, **Space Mono** for the whole interface.
+- Zero border radius, solid 1 px rules, sliders with square thumbs.
+- A background of fine horizontal raster lines imitating scanlines.
+- The canvas is framed by corner crop marks, as on a proof print.
+- Parameter groups are numbered 01–11 because they really are the pipeline sequence, not decoration.
+- The key element is the **rule strip** under the canvas: live JSON of the current preset, always in view. The project's central idea is made a visible part of the interface.
 
-## 9. Ідеї для розвитку
-
-**Продуктивність**
-- Винести конвеєр у Web Worker з OffscreenCanvas, щоб не блокувати інтерфейс.
-- Прогрес-бар з реальними відсотками замість смужки.
-
-**Нові ефекти**
-- Справжній дата-бендинг: читати файл як `ArrayBuffer`, псувати байти після заголовка, показувати результат. Це закриє єдину концептуальну діру.
-- Slit-scan із відео: одна колонка пікселів з кожного кадру кліпу, час перетворюється на простір. Матеріал уже є — Osmo.
-- Крупний халфтон, окремо від дизерингу.
-- Накладання фактури: скан паперу, ксерокс, подряпини — множенням або overlay.
-- Криві й рівні замість простих яскравості й контрасту.
-- Displacement map: спотворення одного зображення яскравістю іншого.
-
-**Робочий процес**
-- Бібліотека пресетів у `localStorage` з іменами і мініатюрами.
-- Контрольний аркуш: 9 варіантів одного пресету з різними сідами одразу, вибір кліком.
-- Перетягування кадру мишкою замість двох повзунків.
-- Історія і скасування.
-- Експорт правила у вигляді короткого коду замість довгого JSON.
-
-**Дальня перспектива**
-- Прив'язка до реального аудіо: аналіз треку і генерація обкладинки з його спектру. Обкладинка як індексальний слід самої музики — концептуально найсильніший варіант з усіх.
+Responsive down to mobile, visible keyboard focus, `prefers-reduced-motion` respected.
 
 ---
 
-## 10. Як продовжити пізніше
+## 8. Known limitations
 
-Щоб повернутися до проєкту, достатньо прикріпити `destruktor.html` і цей опис, і сказати приблизно так:
-
-> Ось мій інструмент для обкладинок і його опис. Хочу додати [що саме]. Збережи існуючу архітектуру: один HTML-файл, ванільний JS, конвеєр із фіксованим порядком кроків, детермінований сід, параметри в об'єкті `P`, масштабування через `s = √(w × h) / 1000`.
-
-Що не варто ламати при доопрацюванні:
-
-1. **Порядок конвеєра.** Він продуманий, а не випадковий.
-2. **Детермінованість.** Будь-який новий ефект із випадковістю має брати числа з того самого `rand`, інакше прев'ю перестане збігатися з експортом.
-3. **Незалежність від розміру.** Кожен новий px-параметр множиться на `s`.
-4. **Один файл, нуль залежностей.** Вся цінність у тому, що це відкривається подвійним кліком і працює через п'ять років.
+- Processing is synchronous on the main thread. Pixel sort and dithering at 3000×3000 take a few seconds, and the interface freezes meanwhile.
+- JPEG cycles at large sizes are the slowest operation: each cycle is a full encode and decode.
+- No action history or undo.
+- Presets are not kept between sessions — only manual copying of the string.
+- Typography: exactly two lines, one typeface, four positions.
+- Batch export and the format set cannot be combined.
+- This is **not** real data-bending: the file's bytes are not corrupted; the destruction happens at the pixel level. Visually close, conceptually not the same thing.
 
 ---
 
-## 11. Робочі рецепти
+## 9. Ideas for development
 
-Стартові точки, від яких можна відштовхуватись.
+**Performance**
+- Move the pipeline into a Web Worker with OffscreenCanvas so the interface does not block.
+- A progress bar with real percentages instead of an indeterminate strip.
 
-**Індустріальний ксерокс** — контраст 280, насиченість 0, дизеринг Аткінсона, крупність 2, рівнів 2, зерно 15.
+**New effects**
+- Real data-bending: read the file as an `ArrayBuffer`, corrupt bytes after the header, show the result. This closes the one conceptual gap.
+- Slit-scan from video: one pixel column from every frame of a clip, turning time into space. The material already exists — Osmo footage.
+- Coarse halftone, separate from dithering.
+- Texture overlay: paper scan, photocopy, scratches — via multiply or overlay.
+- Curves and levels instead of plain brightness and contrast.
+- Displacement map: distorting one image by the brightness of another.
 
-**Потьоки** — pixel sort увімкнено, колонки, пороги 0.15 / 0.70, макс. довжина 900, ключ «яскравість», контраст 200, зерно 8.
+**Workflow**
+- A preset library in `localStorage` with names and thumbnails.
+- Contact sheet: 9 variants of one preset with different seeds at once, pick with a click.
+- Drag the frame with the mouse instead of two sliders.
+- History and undo.
+- Export the rule as a short code instead of long JSON.
 
-**Розпад сигналу** — зсув смуг: сила 120, кількість 40, товщина 6; RGB-зсув 25 під кутом 90°; JPEG-цикли 14 при якості 8%.
+**Long term**
+- Tie it to real audio: analyse a track and generate the cover from its spectrum. A cover as an indexical trace of the music itself — conceptually the strongest option of all.
 
-**Друк у два кольори** — насиченість 0, дизеринг Байєра, крупність 3, дуотон із двох контрастних кольорів.
+---
 
-Далі — вибрати одну і не змінювати рік.
+## 10. Picking it up later
+
+What not to break when extending it:
+
+1. **Pipeline order.** It is designed, not accidental.
+2. **Determinism.** Any new effect with randomness must draw numbers from the same `rand`, or the preview will stop matching the export.
+3. **Size independence.** Every new px parameter is multiplied by `s`.
+4. **One file, zero dependencies.** The whole value is that it opens with a double click and still works in five years.
+
+---
+
+## 11. Working recipes
+
+Starting points to push off from.
+
+**Industrial photocopy** — contrast 280, saturation 0, Atkinson dithering, grain size 2, 2 levels, grain 15.
+
+**Drips** — pixel sort on, columns, thresholds 0.15 / 0.70, max length 900, key "luminance", contrast 200, grain 8.
+
+**Signal decay** — slice shift: amount 120, count 40, thickness 6; RGB shift 25 at 90°; 14 JPEG cycles at 8% quality.
+
+**Two-colour print** — saturation 0, Bayer dithering, grain size 3, duotone from two contrasting colours.
+
+Then pick one and don't change it for a year.
